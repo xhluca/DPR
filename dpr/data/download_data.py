@@ -15,10 +15,12 @@ import logging
 import os
 import pathlib
 import wget
+import fnmatch
 
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
+logging.addLevelName(25, "IMPORTANT_INFO")
 
 # TODO: move to hydra config group
 
@@ -512,11 +514,22 @@ def main():
     parser.add_argument(
         "--resource",
         type=str,
-        help="Resource name. See RESOURCES_MAP for all possible values",
+        help=(
+            "Resource name. See RESOURCES_MAP for all possible values. This accepts Unix shell-style wildcards. "
+            "For example, 'data.retriever.*' will match all files starting with 'data.retriever.' and download them all."
+        ),
+        
     )
     args = parser.parse_args()
     if args.resource:
-        download(args.resource, args.output_dir)
+        important_info = logging.getLevelName("IMPORTANT_INFO")
+        
+        filtered = fnmatch.filter(RESOURCES_MAP.keys(), args.resource)
+        logger.log(important_info, "The following files will be downloaded:")
+        logger.log(important_info, filtered)
+        
+        for name in filtered:
+            download(name, args.output_dir)
     else:
         logger.warning("Please specify resource value. Possible options are:")
         for k, v in RESOURCES_MAP.items():
